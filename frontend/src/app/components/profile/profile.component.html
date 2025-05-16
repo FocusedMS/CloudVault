@@ -1,20 +1,218 @@
-<div class="container fade-in">
-  <div class="dashboard-card">
-    <h2>My Profile</h2>
-    <div *ngIf="isLoading" class="text-center">Loading...</div>
-    <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
-    <div *ngIf="accountDetails && !isLoading">
-      <div class="profile-info">
-        <div class="profile-row"><label>Account Number:</label> <span>{{ accountDetails.accountNumber }}</span></div>
-        <div class="profile-row"><label>Name:</label> <span>{{ accountDetails.accountHolderName }}</span></div>
-        <div class="profile-row"><label>Phone:</label> <span>{{ accountDetails.phoneNumber }}</span></div>
-        <div class="profile-row"><label>Permanent Address:</label> <span>{{ accountDetails.permanentAddress }}</span></div>
-        <div class="profile-row"><label>Government ID:</label> <span>{{ accountDetails.governmentIssuedID }}</span></div>
-        <div class="profile-row"><label>ID Number:</label> <span>{{ accountDetails.idNumber }}</span></div>
-        <div class="profile-row"><label>Account Type:</label> <span>{{ accountDetails.accountType }}</span></div>
-        <div class="profile-row"><label>Balance:</label> <span>₹{{ accountDetails.balance }}</span></div>
-        <div class="profile-row"><label>Account Created:</label> <span>{{ accountDetails.accountCreationDate | date:'short' }}</span></div>
+<div class="profile-container fade-in">
+  <div *ngIf="isLoading" class="loading-container">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p class="loading-text">Loading your profile...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !isLoading" class="error-container">
+    <mat-icon class="error-icon">error_outline</mat-icon>
+    <p class="error-message">{{ error }}</p>
+    <button mat-raised-button color="primary" (click)="loadProfile()">Retry</button>
+  </div>
+
+  <!-- Profile Content -->
+  <div *ngIf="!isLoading && !error" class="profile-content">
+    <div class="profile-header">
+      <div class="header-content">
+        <div class="user-avatar">
+          <mat-icon class="avatar-icon">account_circle</mat-icon>
+          <div class="online-status"></div>
+        </div>
+        <div class="user-info">
+          <h1>{{ accountDetails?.accountHolderName || 'Loading...' }}</h1>
+          <p class="account-number">{{ accountDetails?.accountNumber }}</p>
+        </div>
       </div>
     </div>
+
+    <mat-tab-group [(selectedIndex)]="activeTab" class="profile-tabs">
+      <!-- Personal Information Tab -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">person</mat-icon>
+          Personal Info
+        </ng-template>
+        
+        <div class="tab-content">
+          <mat-card class="info-card">
+            <mat-card-content>
+              <div class="info-grid">
+                <div class="info-item">
+                  <mat-icon>account_box</mat-icon>
+                  <div class="info-details">
+                    <label>Full Name</label>
+                    <span>{{ accountDetails.accountHolderName }}</span>
+                  </div>
+                </div>
+
+                <div class="info-item">
+                  <mat-icon>phone</mat-icon>
+                  <div class="info-details">
+                    <label>Phone Number</label>
+                    <span>{{ accountDetails.phoneNumber }}</span>
+                  </div>
+                </div>
+
+                <div class="info-item">
+                  <mat-icon>location_on</mat-icon>
+                  <div class="info-details">
+                    <label>Address</label>
+                    <span>{{ accountDetails.permanentAddress }}</span>
+                  </div>
+                </div>
+
+                <div class="info-item">
+                  <mat-icon>badge</mat-icon>
+                  <div class="info-details">
+                    <label>Government ID</label>
+                    <span>{{ accountDetails.governmentIssuedID }} - {{ accountDetails.idNumber }}</span>
+                  </div>
+                </div>
+
+                <div class="info-item">
+                  <mat-icon>account_balance_wallet</mat-icon>
+                  <div class="info-details">
+                    <label>Account Type</label>
+                    <span>{{ accountDetails.accountType }}</span>
+                  </div>
+                </div>
+
+                <div class="info-item">
+                  <mat-icon>calendar_today</mat-icon>
+                  <div class="info-details">
+                    <label>Member Since</label>
+                    <span>{{ accountDetails.accountCreationDate | date:'mediumDate' }}</span>
+                  </div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- Activity Log Tab -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">history</mat-icon>
+          Activity Log
+        </ng-template>
+        
+        <div class="tab-content">
+          <mat-card class="activity-card">
+            <mat-card-content>
+              <div class="activity-timeline">
+                <div *ngFor="let activity of recentActivities" class="activity-item">
+                  <div class="activity-icon" [style.background-color]="getStatusColor(activity.type)">
+                    <mat-icon>{{ activity.icon }}</mat-icon>
+                  </div>
+                  <div class="activity-details">
+                    <p class="activity-description">{{ activity.description }}</p>
+                    <span class="activity-time">{{ getTimeAgo(activity.time) }}</span>
+                  </div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- Security Tab -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">security</mat-icon>
+          Security
+        </ng-template>
+        
+        <div class="tab-content">
+          <mat-card class="security-card">
+            <mat-card-content>
+              <div class="security-settings">
+                <div class="security-item">
+                  <div class="security-header">
+                    <mat-icon>verified_user</mat-icon>
+                    <div class="security-title">
+                      <h3>Two-Factor Authentication</h3>
+                      <p>Add an extra layer of security to your account</p>
+                    </div>
+                  </div>
+                  <button mat-raised-button color="primary" (click)="toggleTwoFactor()">
+                    {{ securityPreferences.twoFactorEnabled ? 'Disable' : 'Enable' }}
+                  </button>
+                </div>
+
+                <mat-divider></mat-divider>
+
+                <div class="security-item">
+                  <div class="security-header">
+                    <mat-icon>notifications</mat-icon>
+                    <div class="security-title">
+                      <h3>Login Notifications</h3>
+                      <p>Get notified when someone logs into your account</p>
+                    </div>
+                  </div>
+                  <button mat-raised-button [color]="securityPreferences.loginNotifications ? 'accent' : 'primary'"
+                          (click)="toggleNotification('login')">
+                    {{ securityPreferences.loginNotifications ? 'Disable' : 'Enable' }}
+                  </button>
+                </div>
+
+                <mat-divider></mat-divider>
+
+                <div class="security-item">
+                  <div class="security-header">
+                    <mat-icon>payment</mat-icon>
+                    <div class="security-title">
+                      <h3>Transaction Alerts</h3>
+                      <p>Get notified for all transactions in your account</p>
+                    </div>
+                  </div>
+                  <button mat-raised-button [color]="securityPreferences.transactionAlerts ? 'accent' : 'primary'"
+                          (click)="toggleNotification('transaction')">
+                    {{ securityPreferences.transactionAlerts ? 'Disable' : 'Enable' }}
+                  </button>
+                </div>
+
+                <mat-divider></mat-divider>
+
+                <div class="security-item">
+                  <div class="security-header">
+                    <mat-icon>devices</mat-icon>
+                    <div class="security-title">
+                      <h3>Trusted Devices</h3>
+                      <p>Manage devices that can access your account</p>
+                    </div>
+                  </div>
+                  <div class="trusted-devices">
+                    <div *ngFor="let device of securityPreferences.deviceTrusted" class="device-item">
+                      <mat-icon>{{ device.includes('iPhone') ? 'phone_iphone' : 'computer' }}</mat-icon>
+                      <span>{{ device }}</span>
+                      <button mat-icon-button color="warn" (click)="removeTrustedDevice(device)">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <mat-divider></mat-divider>
+
+                <div class="security-item">
+                  <div class="security-header">
+                    <mat-icon>lock_clock</mat-icon>
+                    <div class="security-title">
+                      <h3>Password</h3>
+                      <p>Last changed {{ formatDate(securityPreferences.lastPasswordChange) }}</p>
+                    </div>
+                  </div>
+                  <button mat-raised-button color="primary">
+                    Change Password
+                  </button>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
   </div>
 </div>

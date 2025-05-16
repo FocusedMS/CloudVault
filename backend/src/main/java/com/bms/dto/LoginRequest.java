@@ -10,7 +10,7 @@ import lombok.Data;
 public class LoginRequest {
 
     @NotBlank(message = "Account number is required")
-    @Pattern(regexp = "^[A-Z0-9]{10}$", message = "Account number must be 10 characters long and contain only uppercase letters and numbers")
+    @Pattern(regexp = "^BANK[A-Z0-9]{6}$", message = "Account number must be in format BANK followed by 6 alphanumeric characters")
     @Schema(description = "Account number of the user", example = "BANK123456")
     private String accountNumber;
 

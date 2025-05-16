@@ -4,9 +4,11 @@ import com.bms.dto.AccountCreationRequest;
 import com.bms.dto.AccountCreationResponse;
 import com.bms.entity.Account;
 import com.bms.entity.Customer;
+import com.bms.entity.User;
 import com.bms.exception.ResourceNotFoundException;
 import com.bms.repository.AccountRepository;
 import com.bms.repository.CustomerRepository;
+import com.bms.repository.UserRepository;
 import com.bms.service.AccountService;
 import com.bms.util.PasswordGenerator;
 import com.bms.util.PasswordUtil;
@@ -34,6 +36,9 @@ public class AccountServiceImpl implements AccountService {
     private AccountRepository accountRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private PasswordUtil passwordUtil;
 
     @Override
@@ -59,14 +64,14 @@ public class AccountServiceImpl implements AccountService {
             customer.setCreatedAt(now);
             customer.setUpdatedAt(now);
 
-            // Generate password
+            // Generate password and hash it
             String password = generatePassword();
             String hashedPassword = passwordUtil.hashPassword(password);
 
             // Create account
             Account account = new Account();
-            account.setAccountNumber(generateAccountNumber());
-            account.setPassword(hashedPassword);
+            String accountNumber = generateAccountNumber();
+            account.setAccountNumber(accountNumber);
             account.setAccountType(request.getAccountType());
             account.setBalance(request.getInitialDeposit());
             account.setAccountCreationDate(now);
@@ -81,6 +86,12 @@ public class AccountServiceImpl implements AccountService {
             
             // Save account
             account = accountRepository.save(account);
+
+            // Create user for authentication
+            User user = new User();
+            user.setAccountNumber(accountNumber);
+            user.setPassword(hashedPassword);
+            userRepository.save(user);
 
             // Prepare response
             return new AccountCreationResponse(
@@ -126,15 +137,22 @@ public class AccountServiceImpl implements AccountService {
     @Transactional
     public void updateBalance(String accountNumber, BigDecimal amount) throws ResourceNotFoundException {
         Optional<Account> accountOptional = accountRepository.findByAccountNumber(accountNumber);
-        Account account = accountOptional.orElseThrow(() -> new ResourceNotFoundException("Account not found"));
+        Account account = accountOptional.orElseThrow(() -> new ResourceNotFoundException("Account not found: " + accountNumber));
         
-        BigDecimal newBalance = account.getBalance().add(amount);
-        if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Balance cannot be negative");
+        synchronized (account.getAccountNumber().intern()) {
+            // Refresh account data to get the latest balance
+            account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found: " + accountNumber));
+        
+            BigDecimal newBalance = account.getBalance().add(amount);
+            if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
+                throw new IllegalArgumentException("Insufficient funds: Balance cannot be negative");
+            }
+        
+            account.setBalance(newBalance);
+            account.setUpdatedAt(LocalDateTime.now());
+            accountRepository.save(account);
         }
-        
-        account.setBalance(newBalance);
-        accountRepository.save(account);
     }
 
     @Override

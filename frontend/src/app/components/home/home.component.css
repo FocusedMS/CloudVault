@@ -206,16 +206,21 @@
   }
 
 .dashboard-header {
-  text-align: left;
+  text-align: center;
   margin-bottom: 2rem;
+  padding: 2rem 0;
+  background: linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(67, 185, 111, 0.1) 100%);
+  border-radius: 16px;
 }
 
 .dashboard-header h1 {
+  color: var(--primary-color);
   font-size: 2.2rem;
-  font-weight: 800;
-  color: #2196f3;
-  margin-bottom: 0.5rem;
-  letter-spacing: 1px;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(90deg, #2196f3, #43b96f);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .dashboard-header .account-number {
@@ -226,193 +231,159 @@
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 2rem;
-  margin-bottom: 2rem;
+  margin: 0 auto;
+  max-width: 1400px;
 }
 
 .dashboard-card {
   background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 4px 24px rgba(33, 150, 243, 0.08);
-  padding: 2rem 1.5rem 1.5rem 1.5rem;
-  transition: box-shadow 0.2s, transform 0.2s;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  min-width: 0;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 32px rgba(33, 150, 243, 0.08);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #2196f3, #43b96f);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.dashboard-card:hover::before {
+  opacity: 1;
 }
 
 .dashboard-card:hover {
-  box-shadow: 0 8px 32px rgba(33, 150, 243, 0.13);
-  transform: translateY(-4px) scale(1.01);
+  transform: translateY(-5px);
+  box-shadow: 0 12px 48px rgba(33, 150, 243, 0.12);
 }
 
-.amount {
-  font-size: 2.1rem;
-  font-weight: 700;
-  color: #2196f3;
-  margin: 1rem 0 0.5rem 0;
-}
-
-.card-footer {
-  margin-top: 1rem;
-  color: #888;
-  font-size: 0.95rem;
-}
-
-.quick-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-  margin-top: 1.2rem;
-}
-
-.btn {
-  min-width: 120px;
-  font-size: 1rem;
-  font-family: inherit;
-  border-radius: 25px;
-  padding: 12px 24px;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.08);
-  transition: background 0.2s, transform 0.2s;
+.dashboard-card h3 {
+  color: #2c3e50;
+  font-size: 1.4rem;
+  margin-bottom: 1.5rem;
   font-weight: 600;
 }
 
-.btn-primary {
-  background: linear-gradient(90deg, #2196f3 0%, #43b96f 100%);
-  color: #fff;
+/* Balance Card Specific Styles */
+.balance-card .amount {
+  text-align: center;
+  padding: 1.5rem;
+  background: linear-gradient(145deg, #f8f9fa, #ffffff);
+  border-radius: 16px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
 }
 
-.btn-success {
-  background: linear-gradient(90deg, #43b96f 0%, #2196f3 100%);
-  color: #fff;
+.balance-card .currency {
+  font-size: 2rem;
+  color: #2196f3;
+  margin-right: 0.5rem;
 }
 
-.btn:hover {
-  transform: translateY(-2px) scale(1.04);
-  filter: brightness(1.1);
+.balance-card .big-balance {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  letter-spacing: -1px;
 }
 
-.transaction-history {
-  margin-top: 1rem;
-  width: 100%;
+/* Quick Actions Card Specific Styles */
+.actions-card .quick-actions-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.transaction-item {
+.actions-card .btn {
+  padding: 1rem;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  transition: all 0.3s ease;
+}
+
+.actions-card .btn i {
+  font-size: 1.2rem;
+}
+
+.actions-card .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(33, 150, 243, 0.15);
+}
+
+/* Summary Card Specific Styles */
+.summary-card .account-summary-list {
+  background: linear-gradient(145deg, #f8f9fa, #ffffff);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
+}
+
+.summary-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.7rem 0;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 
-.transaction-info {
-  display: flex;
-  flex-direction: column;
+.summary-row:last-child {
+  border-bottom: none;
 }
 
-.transaction-type {
-  font-weight: 600;
-  color: #2196f3;
-}
-
-.transaction-date {
-  color: #888;
-  font-size: 0.95rem;
-}
-
-.transaction-amount {
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.transaction-amount.credit {
-  color: #43b96f;
-}
-
-.transaction-amount.debit {
-  color: #ff5858;
-}
-
-.no-transactions {
-  text-align: center;
+.summary-label {
   color: #666;
-  padding: 2rem 0;
-}
-
-.account-summary {
-  margin-top: 1rem;
-  width: 100%;
-}
-
-.summary-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.summary-item label {
-  color: #2196f3;
-  font-weight: 600;
-}
-
-.summary-item span {
-  color: #222;
+  font-size: 0.95rem;
   font-weight: 500;
 }
 
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e0eafc;
-  border-top: 4px solid #2196f3;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.error-message {
-  color: #ff5858;
-  text-align: center;
-  margin: 1rem 0;
+.summary-value {
+  color: #2c3e50;
   font-weight: 600;
+  font-size: 1rem;
 }
 
-@media (max-width: 900px) {
+/* Responsive Design */
+@media (max-width: 1200px) {
   .dashboard-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 1.2rem;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .summary-card {
+    grid-column: span 2;
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: 1.5rem;
   }
+  
+  .summary-card {
+    grid-column: span 1;
+  }
+  
   .dashboard-header h1 {
-    font-size: 1.3rem;
+    font-size: 1.8rem;
   }
+  
   .dashboard-card {
-    padding: 1.2rem 0.7rem;
+    padding: 1.5rem;
   }
-  .navbar-container { padding: 0 0.5rem; }
-  .logo-text { font-size: 1.3rem; }
 }
 
 .full-width {

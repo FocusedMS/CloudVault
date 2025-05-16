@@ -1,13 +1,18 @@
 package com.bms.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class RefreshTokenRequest {
-    @Schema(description = "Refresh token", example = "randomlyGeneratedRefreshTokenHere")
+    
+    @NotBlank(message = "Refresh token is required")
     private String refreshToken;
-
-    @Schema(description = "Account number", example = "BANK123456")
+    
+    @NotBlank(message = "Account number is required")
     private String accountNumber;
 } 

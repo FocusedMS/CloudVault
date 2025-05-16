@@ -1,69 +1,150 @@
-<div class="login-container fade-in">
+<div class="login-container">
   <div class="login-card">
-    <div class="login-header">
-      <div class="logo">
-        <h1>Cloud<span class="madras">Vault</span></h1>
-      </div>
-      <p class="welcome-text">Welcome back! Please login to your account.</p>
+    <div class="logo">
+      <span class="logo-text">Cloud<span class="vault">Vault</span></span>
+    </div>
+    
+    <div class="welcome-text">
+      <h2>Welcome back!</h2>
+      <p>Please login to your account.</p>
     </div>
 
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+    <!-- Main Login Form -->
+    <form *ngIf="!showForgotPassword" [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
       <div class="form-group">
-        <label for="accountNumber">Account Number</label>
-        <div class="input-group">
-          <span class="input-icon">👤</span>
-          <input
-            type="text"
-            id="accountNumber"
-            formControlName="accountNumber"
-            class="form-control"
-            placeholder="Enter your account number"
-            [ngClass]="{'is-invalid': loginForm.get('accountNumber')?.invalid && loginForm.get('accountNumber')?.touched}"
-          >
+        <div class="input-icon">
+          <i class="fas fa-user"></i>
+          <input type="text" formControlName="accountNumber" placeholder="Enter your account number" 
+                 [class.error]="isFieldInvalid('accountNumber')">
         </div>
-        <div *ngIf="loginForm.get('accountNumber')?.errors?.['required'] && loginForm.get('accountNumber')?.touched" class="error-message">
-          Account number is required
-        </div>
-        <div *ngIf="loginForm.get('accountNumber')?.errors?.['pattern'] && loginForm.get('accountNumber')?.touched" class="error-message">
-          Invalid account number format
+        <div class="error-message" *ngIf="isFieldInvalid('accountNumber')">
+          <span *ngIf="loginForm.get('accountNumber')?.errors?.['required']">
+            Account number is required
+          </span>
+          <span *ngIf="loginForm.get('accountNumber')?.errors?.['pattern']">
+            Account number should be in format BANK followed by 6 characters (letters or numbers)
+          </span>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="password">Password</label>
-        <div class="input-group">
-          <span class="input-icon">🔒</span>
-          <input
-            [type]="showPassword ? 'text' : 'password'"
-            id="password"
-            formControlName="password"
-            class="form-control"
-            placeholder="Enter your password"
-            [ngClass]="{'is-invalid': loginForm.get('password')?.invalid && loginForm.get('password')?.touched}"
-          >
-          <button type="button" class="toggle-password" (click)="togglePassword()">
-            {{ showPassword ? '👁️' : '👁️‍🗨️' }}
-          </button>
+        <div class="input-icon">
+          <i class="fas fa-lock"></i>
+          <input [type]="showPassword ? 'text' : 'password'" 
+                 formControlName="password" 
+                 placeholder="Enter your password"
+                 [class.error]="submitted && isFieldInvalid('password')">
+          <i class="fas" 
+             [class.fa-eye]="!showPassword" 
+             [class.fa-eye-slash]="showPassword"
+             (click)="togglePassword()"
+             role="button"
+             aria-label="Toggle password visibility"></i>
         </div>
-        <div *ngIf="loginForm.get('password')?.errors?.['required'] && loginForm.get('password')?.touched" class="error-message">
-          Password is required
+        <div class="error-message" *ngIf="submitted && isFieldInvalid('password')">
+          Please enter your password
         </div>
       </div>
 
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary" [disabled]="!loginForm.valid || loading">
-          <span *ngIf="loading" class="spinner"></span>
-          <span *ngIf="!loading">Login</span>
-        </button>
-      </div>
+      <button type="submit" class="login-button" [disabled]="loading">
+        <span *ngIf="!loading">Login</span>
+        <div *ngIf="loading" class="spinner"></div>
+      </button>
 
       <div class="form-footer">
-        <p>Don't have an account? <a routerLink="/register" class="link">Create Account</a></p>
+        <a routerLink="/reset-password" class="forgot-link">
+          Forgot Password?
+        </a>
+        <span class="divider">•</span>
+        <a routerLink="/register" class="create-account">Create Account</a>
       </div>
     </form>
 
-    <div *ngIf="error" class="alert alert-danger">
-      {{ error }}
-    </div>
+    <!-- Forgot Password Form -->
+    <form *ngIf="showForgotPassword" [formGroup]="resetForm" (ngSubmit)="onResetSubmit()" class="login-form">
+      <div class="back-button" (click)="toggleForgotPassword()">
+        <i class="fas fa-arrow-left"></i> Back to Login
+      </div>
+
+      <h3>Reset Password</h3>
+      <p class="reset-info">Enter your account number to reset your password.</p>
+
+      <div class="form-group">
+        <div class="input-icon">
+          <i class="fas fa-user"></i>
+          <input type="text" formControlName="resetAccountNumber" 
+                 placeholder="Enter your account number"
+                 [class.error]="isResetFieldInvalid('resetAccountNumber')">
+        </div>
+        <div class="error-message" *ngIf="isResetFieldInvalid('resetAccountNumber')">
+          <span *ngIf="resetForm.get('resetAccountNumber')?.errors?.['required']">
+            Account number is required
+          </span>
+          <span *ngIf="resetForm.get('resetAccountNumber')?.errors?.['pattern']">
+            Account number should be in format BANK followed by 6 characters (letters or numbers)
+          </span>
+        </div>
+      </div>
+
+      <button type="submit" class="login-button" [disabled]="resetLoading">
+        <span *ngIf="!resetLoading">Reset Password</span>
+        <div *ngIf="resetLoading" class="spinner"></div>
+      </button>
+    </form>
+
+    <!-- Reset Password Form (After Token Validation) -->
+    <form *ngIf="showNewPasswordForm" [formGroup]="newPasswordForm" (ngSubmit)="onNewPasswordSubmit()" class="login-form">
+      <h3>Set New Password</h3>
+      <p class="reset-info">Please enter your new password.</p>
+
+      <div class="form-group">
+        <div class="input-icon">
+          <i class="fas fa-lock"></i>
+          <input [type]="showNewPassword ? 'text' : 'password'" 
+                 formControlName="newPassword" 
+                 placeholder="Enter new password"
+                 [class.error]="isNewPasswordFieldInvalid('newPassword')">
+          <i class="fas" 
+             [class.fa-eye]="!showNewPassword" 
+             [class.fa-eye-slash]="showNewPassword"
+             (click)="toggleNewPassword()"
+             role="button"
+             aria-label="Toggle password visibility"></i>
+        </div>
+        <div class="password-strength" *ngIf="newPasswordForm.get('newPassword')?.value">
+          <div class="strength-meter">
+            <div [class]="passwordStrengthClass"></div>
+          </div>
+          <span class="strength-text">{{passwordStrengthText}}</span>
+        </div>
+        <div class="error-message" *ngIf="isNewPasswordFieldInvalid('newPassword')">
+          Password must be at least 8 characters long with numbers and special characters
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="input-icon">
+          <i class="fas fa-lock"></i>
+          <input [type]="showConfirmPassword ? 'text' : 'password'" 
+                 formControlName="confirmPassword" 
+                 placeholder="Confirm new password"
+                 [class.error]="isNewPasswordFieldInvalid('confirmPassword')">
+          <i class="fas" 
+             [class.fa-eye]="!showConfirmPassword" 
+             [class.fa-eye-slash]="showConfirmPassword"
+             (click)="toggleConfirmPassword()"
+             role="button"
+             aria-label="Toggle password visibility"></i>
+        </div>
+        <div class="error-message" *ngIf="isNewPasswordFieldInvalid('confirmPassword')">
+          Passwords do not match
+        </div>
+      </div>
+
+      <button type="submit" class="login-button" [disabled]="newPasswordLoading">
+        <span *ngIf="!newPasswordLoading">Update Password</span>
+        <div *ngIf="newPasswordLoading" class="spinner"></div>
+      </button>
+    </form>
   </div>
 </div>

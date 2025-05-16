@@ -24,9 +24,6 @@ public class Account {
     @Column(name = "account_number", unique = true, nullable = false)
     private String accountNumber;
     
-    @Column(name = "password", nullable = false)
-    private String password;
-    
     @Column(name = "account_type", nullable = false)
     @NotNull(message = "Account type is required")
     @Enumerated(EnumType.STRING)

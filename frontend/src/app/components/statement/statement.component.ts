@@ -1,6 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
+import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 
 @Component({
   selector: 'app-statement',
@@ -8,7 +13,7 @@ import { ApiService } from '../../services/api.service';
   templateUrl: './statement.component.html',
   styleUrl: './statement.component.css'
 })
-export class StatementComponent {
+export class StatementComponent implements OnInit {
   statementForm: FormGroup;
   isLoading = false;
   error = '';
@@ -16,32 +21,59 @@ export class StatementComponent {
   accountNumber = '';
   transactions: any[] = [];
 
-  constructor(private fb: FormBuilder, private apiService: ApiService) {
-    this.accountNumber = localStorage.getItem('accountNumber') || '';
+  constructor(
+    private fb: FormBuilder, 
+    private apiService: ApiService,
+    private authService: AuthService,
+    public router: Router
+  ) {
     this.statementForm = this.fb.group({
       fromDate: ['', Validators.required],
       toDate: ['', Validators.required]
     });
   }
 
+  ngOnInit() {
+    const currentUser = this.authService.getUser();
+    if (!currentUser) {
+      this.router.navigate(['/login']);
+      return;
+    }
+    this.accountNumber = currentUser.accountNumber;
+  }
+
   downloadStatement() {
     this.error = '';
+    if (!this.accountNumber) {
+      this.router.navigate(['/login']);
+      return;
+    }
+    
     if (this.statementForm.valid) {
       this.isLoading = true;
       const fromDate = this.statementForm.get('fromDate')?.value;
       const toDate = this.statementForm.get('toDate')?.value;
-      this.apiService.downloadStatement(this.accountNumber, fromDate, toDate).subscribe({
+      
+      // Format dates to YYYY-MM-DD
+      const formattedFromDate = this.formatDate(fromDate);
+      const formattedToDate = this.formatDate(toDate);
+      
+      this.apiService.downloadStatement(this.accountNumber, formattedFromDate, formattedToDate).subscribe({
         next: (blob: Blob) => {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `statement_${this.accountNumber}_${fromDate}_to_${toDate}.pdf`;
+          a.download = `statement_${this.accountNumber}_${formattedFromDate}_to_${formattedToDate}.pdf`;
           a.click();
           window.URL.revokeObjectURL(url);
           this.isLoading = false;
         },
         error: (err) => {
-          this.error = err.error?.message || 'Failed to download statement.';
+          if (err.status === 401) {
+            this.router.navigate(['/login']);
+          } else {
+            this.error = err.error?.message || 'Failed to download statement.';
+          }
           this.isLoading = false;
         }
       });
@@ -50,20 +82,38 @@ export class StatementComponent {
 
   getTransactionsForRange() {
     this.error = '';
+    if (!this.accountNumber) {
+      this.router.navigate(['/login']);
+      return;
+    }
+    
     if (this.statementForm.valid) {
       this.isLoading = true;
       const fromDate = this.statementForm.get('fromDate')?.value;
       const toDate = this.statementForm.get('toDate')?.value;
-      this.apiService.getTransactionHistoryForRange(this.accountNumber, fromDate, toDate).subscribe({
+      
+      // Format dates to YYYY-MM-DD
+      const formattedFromDate = this.formatDate(fromDate);
+      const formattedToDate = this.formatDate(toDate);
+      
+      this.apiService.getTransactionHistoryForRange(this.accountNumber, formattedFromDate, formattedToDate).subscribe({
         next: (data: any[]) => {
           this.transactions = data;
           this.isLoading = false;
         },
         error: (err) => {
-          this.error = err.error?.message || 'Failed to fetch transactions.';
+          if (err.status === 401) {
+            this.router.navigate(['/login']);
+          } else {
+            this.error = err.error?.message || 'Failed to fetch transactions.';
+          }
           this.isLoading = false;
         }
       });
     }
+  }
+
+  private formatDate(date: Date): string {
+    return date.toISOString().split('T')[0];
   }
 }

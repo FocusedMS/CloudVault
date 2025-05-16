@@ -4,7 +4,10 @@ import com.bms.dto.LoginRequest;
 import com.bms.dto.LoginResponse;
 import com.bms.dto.LogoutResponse;
 import com.bms.dto.TokenRefreshResponse;
+import com.bms.dto.RefreshTokenRequest;
+import com.bms.dto.PasswordResetRequest;
 import com.bms.service.AuthService;
+import com.bms.service.PasswordResetService;
 import com.bms.util.JwtUtil;
 import com.bms.service.RefreshTokenService;
 import com.bms.entity.RefreshToken;
@@ -20,12 +23,15 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import com.bms.exception.UserNotFoundException;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "APIs for user authentication")
+@CrossOrigin(origins = "${app.cors.allowed-origins}", allowCredentials = "true")
 public class AuthController {
 
     @Autowired
@@ -36,6 +42,9 @@ public class AuthController {
 
     @Autowired
     private RefreshTokenService refreshTokenService;
+
+    @Autowired
+    private PasswordResetService passwordResetService;
 
     @Operation(
         summary = "Login to the system",
@@ -107,5 +116,77 @@ public class AuthController {
             new TokenRefreshResponse("Invalid or expired refresh token", null, null),
             HttpStatus.UNAUTHORIZED
         );
+    }
+
+    @PostMapping("/reset-password/initiate")
+    public ResponseEntity<?> initiatePasswordReset(@Valid @RequestBody PasswordResetRequest request) {
+        System.out.println("Received password reset request: " + request);
+        try {
+            if (request == null || request.getAccountNumber() == null) {
+                System.out.println("Request or account number is null");
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Account number is required"
+                ));
+            }
+
+            String accountNumber = request.getAccountNumber();
+            System.out.println("Processing reset request for account: " + accountNumber);
+
+            if (!accountNumber.matches("^BANK[A-Z0-9]{6}$")) {
+                System.out.println("Invalid account number format: " + accountNumber);
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Invalid account number format. Must be BANK followed by 6 alphanumeric characters"
+                ));
+            }
+
+            String token = passwordResetService.initiateReset(accountNumber);
+            System.out.println("Generated reset token for account: " + accountNumber);
+            return ResponseEntity.ok().body(Map.of(
+                "message", "Password reset initiated successfully",
+                "token", token
+            ));
+        } catch (UserNotFoundException e) {
+            System.out.println("User not found: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", e.getMessage()
+            ));
+        } catch (Exception e) {
+            System.out.println("Error processing reset request: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "An error occurred while processing your request: " + e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/reset-password/validate")
+    public ResponseEntity<?> validateResetToken(@RequestBody Map<String, String> request) {
+        try {
+            String token = request.get("token");
+            boolean isValid = passwordResetService.validateToken(token);
+            return ResponseEntity.ok().body(Map.of(
+                "valid", isValid
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/reset-password/reset")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        try {
+            String token = request.get("token");
+            String newPassword = request.get("newPassword");
+            passwordResetService.resetPassword(token, newPassword);
+            return ResponseEntity.ok().body(Map.of(
+                "message", "Password reset successfully"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", e.getMessage()
+            ));
+        }
     }
 } 

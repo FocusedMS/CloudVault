@@ -4,29 +4,40 @@
       <span style="font-size: 1.6rem; font-weight: 800; color: #1976d2; letter-spacing: 1px;">CloudVault</span>
     </div>
     <h2 style="margin-bottom: 1.2rem; color: #222; font-size: 1.3rem; font-weight: 700;">Bank Statement</h2>
-    <form [formGroup]="statementForm" (ngSubmit)="downloadStatement()" class="transfer-form">
+    
+    <!-- Show error message at the top if account number is missing -->
+    <div class="alert alert-danger" *ngIf="!accountNumber" style="margin-bottom: 1rem;">
+      <div>Account number not found. Please log in again.</div>
+      <button class="btn btn-link" (click)="router.navigate(['/login'])" style="padding: 0; color: #721c24; text-decoration: underline;">
+        Go to Login
+      </button>
+    </div>
+
+    <form [formGroup]="statementForm" (ngSubmit)="downloadStatement()" class="transfer-form" *ngIf="accountNumber">
       <div class="form-group">
-        <label for="fromDate">From Date</label>
-        <mat-form-field appearance="fill" class="full-width">
-          <input matInput [matDatepicker]="fromPicker" id="fromDate" formControlName="fromDate" placeholder="From date" />
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>From Date</mat-label>
+          <input matInput [matDatepicker]="fromPicker" formControlName="fromDate" placeholder="Choose a date">
           <mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
           <mat-datepicker #fromPicker></mat-datepicker>
+          <mat-error *ngIf="statementForm.get('fromDate')?.errors?.['required']">
+            From date is required
+          </mat-error>
         </mat-form-field>
-        <div class="error-message" *ngIf="statementForm.get('fromDate')?.invalid && (statementForm.get('fromDate')?.dirty || statementForm.get('fromDate')?.touched)">
-          <div *ngIf="statementForm.get('fromDate')?.errors?.['required']">From date is required.</div>
-        </div>
       </div>
+
       <div class="form-group">
-        <label for="toDate">To Date</label>
-        <mat-form-field appearance="fill" class="full-width">
-          <input matInput [matDatepicker]="toPicker" id="toDate" formControlName="toDate" placeholder="To date" />
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>To Date</mat-label>
+          <input matInput [matDatepicker]="toPicker" formControlName="toDate" placeholder="Choose a date">
           <mat-datepicker-toggle matSuffix [for]="toPicker"></mat-datepicker-toggle>
           <mat-datepicker #toPicker></mat-datepicker>
+          <mat-error *ngIf="statementForm.get('toDate')?.errors?.['required']">
+            To date is required
+          </mat-error>
         </mat-form-field>
-        <div class="error-message" *ngIf="statementForm.get('toDate')?.invalid && (statementForm.get('toDate')?.dirty || statementForm.get('toDate')?.touched)">
-          <div *ngIf="statementForm.get('toDate')?.errors?.['required']">To date is required.</div>
-        </div>
       </div>
+
       <div class="form-actions">
         <button type="submit" class="btn btn-primary" [disabled]="statementForm.invalid || isLoading">
           <span *ngIf="isLoading" class="spinner"></span>
@@ -34,8 +45,14 @@
         </button>
       </div>
     </form>
-    <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
-    <div *ngIf="isLoading" class="text-center">Downloading...</div>
+    
+    <!-- Show other error messages -->
+    <div class="alert alert-danger" *ngIf="error && error !== 'Account number not found. Please log in again.'">{{ error }}</div>
+    
+    <div *ngIf="isLoading" class="text-center">
+      <div class="spinner"></div>
+      <div>Downloading your statement...</div>
+    </div>
     <!-- Transaction preview table will be added here in the next step -->
   </div>
 </div>

@@ -5,6 +5,7 @@ import com.bms.dto.TransactionResponse;
 import com.bms.entity.Transaction;
 import com.bms.exception.InsufficientFundsException;
 import com.bms.exception.ResourceNotFoundException;
+import com.bms.exception.ValidationException;
 import com.bms.repository.TransactionRepository;
 import com.bms.service.AccountService;
 import com.bms.service.TransactionService;
@@ -15,9 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.Comparator;
 
 @Service
 public class TransactionServiceImpl implements TransactionService {
@@ -28,51 +33,146 @@ public class TransactionServiceImpl implements TransactionService {
     @Autowired
     private AccountService accountService;
 
+    private static final BigDecimal MAX_TRANSFER_AMOUNT = new BigDecimal("100000.00");
+    private static final BigDecimal MIN_TRANSFER_AMOUNT = new BigDecimal("1.00");
+
     @Override
     @Transactional
     public TransactionResponse processTransaction(TransactionRequest request) {
-        // Set source account number from authenticated user if not provided
-        if (request.getSourceAccountNumber() == null || request.getSourceAccountNumber().isBlank()) {
-            String loggedInAccountNumber = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            request.setSourceAccountNumber(loggedInAccountNumber);
-        }
-        // Prevent self-transfer
-        if (request.getSourceAccountNumber().equals(request.getDestinationAccountNumber())) {
-            throw new IllegalArgumentException("Cannot transfer to the same account.");
-        }
-        // Validate source account exists and has sufficient funds
-        BigDecimal sourceBalance = accountService.getAccountBalance(request.getSourceAccountNumber());
-        if (sourceBalance.compareTo(request.getAmount()) < 0) {
-            throw new InsufficientFundsException("Insufficient funds in source account");
-        }
+        try {
+            // Set source account number from authenticated user if not provided
+            if (request.getSourceAccountNumber() == null || request.getSourceAccountNumber().isBlank()) {
+                String loggedInAccountNumber = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+                request.setSourceAccountNumber(loggedInAccountNumber);
+            }
+            
+            // Validate amount
+            validateAmount(request.getAmount());
+            
+            // Validate accounts
+            validateAccounts(request.getSourceAccountNumber(), request.getDestinationAccountNumber());
+            
+            // Validate source account balance
+            BigDecimal sourceBalance = accountService.getAccountBalance(request.getSourceAccountNumber());
+            validateBalance(sourceBalance, request.getAmount());
 
-        // Validate destination account exists
-        if (!accountService.accountExists(request.getDestinationAccountNumber())) {
-            throw new ResourceNotFoundException("Destination account not found");
+            // Generate unique transaction ID
+            String transactionId = "TXN" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            
+            try {
+                // Update account balances
+                accountService.updateBalance(request.getSourceAccountNumber(), request.getAmount().negate());
+                accountService.updateBalance(request.getDestinationAccountNumber(), request.getAmount());
+                
+                // Create transaction entity
+                Transaction transaction = new Transaction();
+                transaction.setTransactionId(transactionId);
+                transaction.setSourceAccountNumber(request.getSourceAccountNumber());
+                transaction.setDestinationAccountNumber(request.getDestinationAccountNumber());
+                transaction.setAmount(request.getAmount());
+                transaction.setDescription(validateAndTrimDescription(request.getDescription()));
+                transaction.setStatus("COMPLETED");
+                transaction.setSourceAccountBalance(sourceBalance.subtract(request.getAmount()));
+                transaction.setTimestamp(LocalDateTime.now());
+                
+                // Save transaction
+                transaction = transactionRepository.save(transaction);
+                
+                // Convert to response
+                TransactionResponse response = convertToResponse(transaction);
+                response.setTransactionType("DEBIT"); // Set type for source account
+                return response;
+                
+            } catch (Exception e) {
+                throw new RuntimeException("Transaction failed: " + e.getMessage(), e);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Transaction failed: " + e.getMessage(), e);
         }
+    }
 
-        // Generate unique transaction ID
-        String transactionId = "TXN" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    private void validateAmount(BigDecimal amount) {
+        if (amount == null) {
+            throw new ValidationException("INVALID_AMOUNT", "Transfer amount is required");
+        }
         
-        // Update account balances
-        accountService.updateBalance(request.getSourceAccountNumber(), request.getAmount().negate());
-        accountService.updateBalance(request.getDestinationAccountNumber(), request.getAmount());
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ValidationException("INVALID_AMOUNT", "Transfer amount must be greater than zero");
+        }
         
-        // Create transaction entity
-        Transaction transaction = new Transaction();
-        transaction.setTransactionId(transactionId);
-        transaction.setSourceAccountNumber(request.getSourceAccountNumber());
-        transaction.setDestinationAccountNumber(request.getDestinationAccountNumber());
-        transaction.setAmount(request.getAmount());
-        transaction.setDescription(request.getDescription());
-        transaction.setStatus("COMPLETED");
-        transaction.setSourceAccountBalance(sourceBalance.subtract(request.getAmount()));
+        if (amount.compareTo(MIN_TRANSFER_AMOUNT) < 0) {
+            Map<String, Object> details = new HashMap<>();
+            details.put("minimumAmount", MIN_TRANSFER_AMOUNT);
+            details.put("providedAmount", amount);
+            throw new ValidationException(
+                "BELOW_MINIMUM_AMOUNT",
+                "Transfer amount must be at least ₹" + MIN_TRANSFER_AMOUNT,
+                details
+            );
+        }
         
-        // Save transaction
-        transaction = transactionRepository.save(transaction);
+        if (amount.compareTo(MAX_TRANSFER_AMOUNT) > 0) {
+            Map<String, Object> details = new HashMap<>();
+            details.put("maximumAmount", MAX_TRANSFER_AMOUNT);
+            details.put("providedAmount", amount);
+            throw new ValidationException(
+                "EXCEEDS_MAXIMUM_AMOUNT",
+                "Transfer amount cannot exceed ₹" + MAX_TRANSFER_AMOUNT,
+                details
+            );
+        }
+    }
+
+    private void validateAccounts(String sourceAccountNumber, String destinationAccountNumber) {
+        if (sourceAccountNumber == null || sourceAccountNumber.isBlank()) {
+            throw new ValidationException("INVALID_SOURCE_ACCOUNT", "Source account number is required");
+        }
         
-        // Convert to response
-        return convertToResponse(transaction);
+        if (destinationAccountNumber == null || destinationAccountNumber.isBlank()) {
+            throw new ValidationException("INVALID_DESTINATION_ACCOUNT", "Destination account number is required");
+        }
+        
+        if (sourceAccountNumber.equals(destinationAccountNumber)) {
+            throw new ValidationException("SELF_TRANSFER_NOT_ALLOWED", "Cannot transfer money to the same account");
+        }
+        
+        if (!accountService.accountExists(destinationAccountNumber)) {
+            throw new ResourceNotFoundException("Destination account not found: " + destinationAccountNumber);
+        }
+    }
+
+    private void validateBalance(BigDecimal currentBalance, BigDecimal transferAmount) {
+        if (currentBalance.compareTo(transferAmount) < 0) {
+            Map<String, Object> details = new HashMap<>();
+            details.put("currentBalance", currentBalance);
+            details.put("requiredAmount", transferAmount);
+            details.put("shortfall", transferAmount.subtract(currentBalance));
+            
+            throw new InsufficientFundsException(
+                String.format("Insufficient funds. Available balance: ₹%s, Required amount: ₹%s",
+                    currentBalance, transferAmount)
+            );
+        }
+    }
+
+    private String validateAndTrimDescription(String description) {
+        if (description == null) {
+            return "Fund Transfer";
+        }
+        
+        String trimmed = description.trim();
+        if (trimmed.isEmpty()) {
+            return "Fund Transfer";
+        }
+        
+        if (trimmed.length() > 100) {
+            throw new ValidationException(
+                "DESCRIPTION_TOO_LONG",
+                "Transaction description cannot exceed 100 characters"
+            );
+        }
+        
+        return trimmed;
     }
 
     @Override
@@ -90,10 +190,25 @@ public class TransactionServiceImpl implements TransactionService {
             throw new ResourceNotFoundException("Account not found");
         }
         
-        List<Transaction> transactions = transactionRepository.findBySourceAccountNumberOrderByTimestampDesc(accountNumber);
-        return transactions.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+        // Get both outgoing and incoming transactions
+        List<Transaction> outgoingTransactions = transactionRepository.findBySourceAccountNumberOrderByTimestampDesc(accountNumber);
+        List<Transaction> incomingTransactions = transactionRepository.findByDestinationAccountNumberOrderByTimestampDesc(accountNumber);
+        
+        // Combine and convert both types of transactions
+        return Stream.concat(
+                outgoingTransactions.stream().map(transaction -> {
+                    TransactionResponse response = convertToResponse(transaction);
+                    response.setTransactionType("DEBIT");
+                    return response;
+                }),
+                incomingTransactions.stream().map(transaction -> {
+                    TransactionResponse response = convertToResponse(transaction);
+                    response.setTransactionType("CREDIT");
+                    return response;
+                })
+            )
+            .sorted(Comparator.comparing(TransactionResponse::getTimestamp).reversed())
+            .collect(Collectors.toList());
     }
 
     private TransactionResponse convertToResponse(Transaction transaction) {

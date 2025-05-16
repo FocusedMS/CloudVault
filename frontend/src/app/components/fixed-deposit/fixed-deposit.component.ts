@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-fixed-deposit',
@@ -17,10 +18,16 @@ export class FixedDepositComponent implements OnInit {
   error = '';
   accountNumber = '';
 
-  constructor(private fb: FormBuilder, private apiService: ApiService) {}
+  constructor(
+    private fb: FormBuilder, 
+    private apiService: ApiService,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
-    this.accountNumber = localStorage.getItem('accountNumber') || '';
+    const currentUser = this.authService.getUser();
+    this.accountNumber = currentUser?.accountNumber || '';
+    console.log('Account Number from Auth:', this.accountNumber);
     this.fdForm = this.fb.group({
       principalAmount: [null, [Validators.required, Validators.min(500)]],
       termMonths: [6, [Validators.required, Validators.min(6)]]
@@ -54,6 +61,7 @@ export class FixedDepositComponent implements OnInit {
         principalAmount: this.fdForm.get('principalAmount')?.value,
         termMonths: this.fdForm.get('termMonths')?.value
       };
+      console.log('FD Creation Payload:', payload);
       this.apiService.createFixedDeposit(payload).subscribe({
         next: (res: any) => {
           this.message = res.message || 'Fixed Deposit created!';
@@ -62,6 +70,7 @@ export class FixedDepositComponent implements OnInit {
           this.fetchFDs();
         },
         error: (err) => {
+          console.error('FD Creation Error:', err);
           this.error = err.error?.message || 'Failed to create Fixed Deposit.';
           this.isLoading = false;
         }

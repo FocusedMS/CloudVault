@@ -8,16 +8,39 @@
     <!-- Transfer Form -->
     <div class="transaction-card">
       <h2>New Transfer</h2>
-      <form [formGroup]="transferForm" (ngSubmit)="onSubmit()" class="transfer-form">
+      <form [formGroup]="transactionForm" (ngSubmit)="onSubmit()" class="transfer-form">
         <div class="form-group">
-          <label for="recipientAccount">Recipient Account Number</label>
+          <label for="toAccount">Recipient Account Number</label>
           <input
             type="text"
-            id="recipientAccount"
-            formControlName="recipientAccount"
+            id="toAccount"
+            formControlName="toAccount"
             class="form-control"
             placeholder="Enter recipient's account number"
+            [class.error]="error"
           >
+          <div *ngIf="recipientLoading" class="recipient-loading">
+            <div class="spinner-small"></div>
+            <span>Looking up account...</span>
+          </div>
+          <div *ngIf="recipientName" class="recipient-name-container">
+            <div class="recipient-name-card success">
+              <i class="fas fa-user-circle"></i>
+              <div class="recipient-details">
+                <span class="label">Recipient Name</span>
+                <span class="value">{{ recipientName }}</span>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="error" class="recipient-name-container">
+            <div class="recipient-name-card error">
+              <i class="fas fa-exclamation-circle"></i>
+              <div class="recipient-details">
+                <span class="label">Error</span>
+                <span class="value">{{ error }}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="form-group">
@@ -43,10 +66,22 @@
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary" [disabled]="!transferForm.valid || loading">
+          <button type="submit" class="btn btn-primary" [disabled]="!transactionForm.valid || loading || !!error">
             <span *ngIf="loading" class="spinner"></span>
             <span *ngIf="!loading">Transfer Money</span>
           </button>
+        </div>
+
+        <div *ngIf="success" class="success-message-container">
+          <div class="success-card">
+            <div class="success-icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="success-content">
+              <h3>Transfer Successful!</h3>
+              <p>{{ success }}</p>
+            </div>
+          </div>
         </div>
       </form>
     </div>
@@ -67,18 +102,29 @@
 
       <div class="transaction-list">
         <div *ngIf="transactions.length === 0" class="no-transactions">
-          No transactions found
+          <i class="fas fa-receipt"></i>
+          <p>No transactions found</p>
         </div>
-        <div *ngFor="let transaction of transactions" class="transaction-item">
+        <div *ngFor="let transaction of transactions" class="transaction-item" [ngClass]="{'credit-transaction': transaction.transactionType === 'CREDIT', 'debit-transaction': transaction.transactionType === 'DEBIT'}">
           <div class="transaction-info">
-            <div class="transaction-type">
-              {{ transaction.transactionType }}
-              <span class="transaction-date">{{ transaction.transactionDate | date:'medium' }}</span>
+            <div class="transaction-main">
+              <div class="transaction-icon">
+                <i class="fas" [ngClass]="{'fa-arrow-up text-danger': transaction.transactionType === 'DEBIT', 'fa-arrow-down text-success': transaction.transactionType === 'CREDIT'}"></i>
+              </div>
+              <div class="transaction-details">
+                <div class="transaction-type-label">
+                  {{ transaction.transactionType === 'DEBIT' ? 'Sent' : 'Received' }}
+                  <span class="transaction-date">{{ transaction.timestamp | date:'MMM d, y, h:mm a' }}</span>
+                </div>
+                <div class="transaction-description">{{ transaction.description }}</div>
+                <div class="transaction-accounts">
+                  {{ transaction.transactionType === 'DEBIT' ? 'To: ' + transaction.destinationAccountNumber : 'From: ' + transaction.sourceAccountNumber }}
+                </div>
+              </div>
             </div>
-            <div class="transaction-description">{{ transaction.description }}</div>
-          </div>
-          <div class="transaction-amount" [ngClass]="transaction.transactionType === 'CREDIT' ? 'credit' : 'debit'">
-            {{ transaction.transactionType === 'CREDIT' ? '+' : '-' }}₹{{ transaction.amount | number:'1.2-2' }}
+            <div class="transaction-amount" [ngClass]="{'credit': transaction.transactionType === 'CREDIT', 'debit': transaction.transactionType === 'DEBIT'}">
+              {{ transaction.transactionType === 'CREDIT' ? '+' : '-' }}₹{{ transaction.amount | number:'1.2-2' }}
+            </div>
           </div>
         </div>
       </div>
@@ -231,5 +277,314 @@
   @keyframes pop-in {
     0% { transform: scale(0.7); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
+  }
+
+  .transaction-list {
+    margin-top: 1.5rem;
+  }
+
+  .transaction-item {
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+  }
+
+  .transaction-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+
+  .credit-transaction {
+    border-left: 4px solid #28a745;
+  }
+
+  .debit-transaction {
+    border-left: 4px solid #dc3545;
+  }
+
+  .transaction-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .transaction-main {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .transaction-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+  }
+
+  .transaction-icon i {
+    font-size: 1.2rem;
+  }
+
+  .text-danger {
+    color: #dc3545;
+  }
+
+  .text-success {
+    color: #28a745;
+  }
+
+  .transaction-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .transaction-type-label {
+    font-weight: 600;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .transaction-date {
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-weight: normal;
+  }
+
+  .transaction-description {
+    color: #495057;
+    font-size: 0.9rem;
+  }
+
+  .transaction-accounts {
+    font-size: 0.85rem;
+    color: #6c757d;
+  }
+
+  .transaction-amount {
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+
+  .transaction-amount.credit {
+    color: #28a745;
+  }
+
+  .transaction-amount.debit {
+    color: #dc3545;
+  }
+
+  .no-transactions {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+    background: #f8f9fa;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .no-transactions i {
+    font-size: 2.5rem;
+    color: #adb5bd;
+  }
+
+  .no-transactions p {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+
+  @media (max-width: 768px) {
+    .transaction-item {
+      padding: 0.75rem;
+    }
+
+    .transaction-icon {
+      width: 32px;
+      height: 32px;
+    }
+
+    .transaction-amount {
+      font-size: 1rem;
+    }
+
+    .transaction-type-label {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+    }
+  }
+
+  .success-message-container {
+    margin-top: 1rem;
+    animation: slideDown 0.3s ease-out;
+  }
+
+  .success-card {
+    background: linear-gradient(145deg, #e8f5e9, #f1f8e9);
+    border: 1px solid #c8e6c9;
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
+  }
+
+  .success-icon {
+    font-size: 2rem;
+    color: #4caf50;
+    animation: scaleIn 0.5s ease-out;
+  }
+
+  .success-content {
+    flex: 1;
+  }
+
+  .success-content h3 {
+    color: #2e7d32;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+  }
+
+  .success-content p {
+    color: #388e3c;
+    margin: 0;
+    font-size: 0.9rem;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      transform: scale(0);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+
+  .transaction-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin: 1.5rem auto;
+    max-width: 1400px;
+    align-items: start;
+  }
+
+  .transaction-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    height: fit-content;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .transaction-list {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+  }
+
+  .transaction-list::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .transaction-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  .transaction-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+  }
+
+  .transaction-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+
+  .transaction-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .transaction-header h1 {
+    color: #2196f3;
+    margin-bottom: 0.5rem;
+  }
+
+  .transaction-header p {
+    color: #666;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #333;
+    font-weight: 500;
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+  }
+
+  .form-control:focus {
+    border-color: #2196f3;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+    outline: none;
+  }
+
+  .transaction-filters {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+  }
+
+  @media (max-width: 1024px) {
+    .transaction-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin: 1rem;
+    }
+
+    .transaction-card {
+      max-height: none;
+    }
+
+    .transaction-list {
+      max-height: 50vh;
+    }
   }
 </style>

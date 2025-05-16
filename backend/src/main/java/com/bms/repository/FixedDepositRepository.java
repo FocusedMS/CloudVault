@@ -1,6 +1,7 @@
 package com.bms.repository;
 
 import com.bms.entity.FixedDeposit;
+import com.bms.enums.FDStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
@@ -14,7 +15,7 @@ public interface FixedDepositRepository extends JpaRepository<FixedDeposit, Long
     
     List<FixedDeposit> findByAccount_AccountNumber(String accountNumber);
     
-    List<FixedDeposit> findByAccount_AccountNumberAndStatus(String accountNumber, String status);
+    List<FixedDeposit> findByAccount_AccountNumberAndStatus(String accountNumber, FDStatus status);
     
-    List<FixedDeposit> findByMaturityDateLessThanAndStatus(LocalDateTime currentDate, String status);
+    List<FixedDeposit> findByMaturityDateLessThanAndStatus(LocalDateTime currentDate, FDStatus status);
 } 

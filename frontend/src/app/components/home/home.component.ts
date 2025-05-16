@@ -1,16 +1,37 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
-import { AccountService, AccountDetails } from '../../services/account.service';
-import { TransactionService, Transaction } from '../../services/transaction.service';
+import { AuthService } from '../../services/auth.service';
+
+interface AccountDetails {
+  accountNumber: string;
+  accountHolderName: string;
+  balance: number;
+  accountType: string;
+  accountCreationDate: string;
+  phoneNumber: string;
+  permanentAddress: string;
+  governmentIssuedID: string;
+  idNumber: string;
+}
+
+interface Transaction {
+  transactionId: string;
+  fromAccount: string;
+  toAccount: string;
+  amount: number;
+  description: string;
+  timestamp: string;
+  type: string;
+}
 
 @Component({
   selector: 'app-home',
-  standalone: false,
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css'],
+  standalone: false
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
   showBalance = false;
   accountDetails: AccountDetails | null = null;
   balance: number | null = null;
@@ -24,30 +45,33 @@ export class HomeComponent implements OnInit {
   constructor(
     private router: Router,
     private apiService: ApiService,
-    private accountService: AccountService,
-    private transactionService: TransactionService
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
-    this.accountNumber = localStorage.getItem('accountNumber') || '';
-    if (this.accountNumber) {
-      this.loadAccountDetails(this.accountNumber);
-      this.loadRecentTransactions(this.accountNumber);
-    } else {
-      this.router.navigate(['/login']);
-    }
+    this.loadAccountDetails();
   }
 
-  private loadAccountDetails(accountNumber: string): void {
-    this.accountService.getAccountDetails(accountNumber).subscribe({
-      next: (data: AccountDetails) => {
-        this.accountDetails = data;
+  private loadAccountDetails(): void {
+    const currentUser = this.authService.getUser();
+    if (!currentUser?.accountNumber) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    this.loading = true;
+    this.apiService.getAccountDetails(currentUser.accountNumber).subscribe({
+      next: (details: AccountDetails) => {
+        this.accountDetails = details;
         this.loading = false;
-        const balance = Number(data.balance);
-        console.log('Animating balance to:', balance);
-        this.animateBalance(balance);
+        this.balance = details.balance;
+        this.accountNumber = details.accountNumber;
+        if (typeof details.balance === 'number') {
+          this.animateBalance(details.balance);
+        }
+        this.loadRecentTransactions(currentUser.accountNumber);
       },
-      error: (error: any) => {
+      error: (error) => {
         this.error = 'Failed to load account details';
         this.loading = false;
         console.error('Error loading account details:', error);
@@ -56,38 +80,25 @@ export class HomeComponent implements OnInit {
   }
 
   private loadRecentTransactions(accountNumber: string): void {
-    this.transactionService.getRecentTransactions(accountNumber).subscribe({
-      next: (data: Transaction[]) => {
-        this.transactions = data.slice(0, 5); // Get only the 5 most recent transactions
+    this.apiService.getTransactionHistory(accountNumber).subscribe({
+      next: (transactions: Transaction[]) => {
+        this.transactions = transactions;
       },
-      error: (error: any) => {
-        console.error('Error loading recent transactions:', error);
+      error: (error) => {
+        console.error('Error loading transactions:', error);
       }
     });
   }
 
   toggleBalance() {
-    if (!this.showBalance && this.accountNumber) {
-      this.apiService.getAccountBalance(this.accountNumber).subscribe({
-        next: (data) => {
-          this.balance = data.balance || data;
-          this.showBalance = true;
-        },
-        error: (err) => {
-          this.balance = null;
-          this.showBalance = true;
-        }
-      });
-    } else {
-      this.showBalance = false;
-    }
+    this.showBalance = !this.showBalance;
   }
 
   logout() {
     const confirmed = confirm('Do you want to exit?');
     if (confirmed) {
-      localStorage.clear();
-      this.router.navigate(['/']);
+      this.authService.logout();
+      this.router.navigate(['/login']);
     }
   }
 
@@ -95,19 +106,33 @@ export class HomeComponent implements OnInit {
     if (this.animationFrame) {
       cancelAnimationFrame(this.animationFrame);
     }
-    let start = 0;
-    const duration = 900;
+
+    const startValue = 0;
+    const duration = 1000; // 1 second
     const startTime = performance.now();
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      this.displayedBalance = start + (target - start) * progress;
+
+    const animate = (currentTime: number) => {
+      const elapsedTime = currentTime - startTime;
+      const progress = Math.min(elapsedTime / duration, 1);
+
+      // Easing function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      this.displayedBalance = startValue + (target - startValue) * easeOutQuart;
+
       if (progress < 1) {
         this.animationFrame = requestAnimationFrame(animate);
       } else {
         this.displayedBalance = target;
+        this.animationFrame = null;
       }
     };
+
     this.animationFrame = requestAnimationFrame(animate);
+  }
+
+  ngOnDestroy() {
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+    }
   }
 }

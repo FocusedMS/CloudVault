@@ -1,28 +1,147 @@
-<div class="container fade-in">
-  <div class="dashboard-card">
-    <h2>Contact Support</h2>
-    <form [formGroup]="supportForm" (ngSubmit)="onSubmit()" class="transfer-form">
-      <div class="form-group">
-        <label for="name">Name</label>
-        <input type="text" id="name" formControlName="name" class="form-control" placeholder="Your name" />
+<div class="support-container fade-in">
+  <!-- Emergency Support Banner -->
+  <div class="emergency-banner">
+    <mat-icon class="warning-icon">warning</mat-icon>
+    <div class="emergency-content">
+      <h2>Need Immediate Assistance?</h2>
+      <div class="emergency-contacts">
+        <div *ngFor="let contact of emergencyContacts" class="contact-item">
+          <span class="contact-title">{{contact.title}}</span>
+          <span class="contact-number">{{contact.number}}</span>
+        </div>
       </div>
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" formControlName="email" class="form-control" placeholder="Your email" />
-      </div>
-      <div class="form-group">
-        <label for="message">Message</label>
-        <textarea id="message" formControlName="message" class="form-control" rows="4" placeholder="How can we help you?"></textarea>
-      </div>
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary" [disabled]="supportForm.invalid || isLoading">
-          <span *ngIf="isLoading" class="spinner"></span>
-          <span *ngIf="!isLoading">Send Message</span>
-        </button>
-      </div>
-    </form>
-    <div class="alert alert-success" *ngIf="success">{{ success }}</div>
-    <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
-    <div class="text-muted text-center" style="margin-top:2rem;">For urgent queries, email <b>support&#64;cloudvault.com</b></div>
+    </div>
+  </div>
+
+  <div class="support-content">
+    <!-- Left Section: Support Form -->
+    <div class="support-form-section">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>support_agent</mat-icon>
+            Contact Support
+          </mat-card-title>
+          <mat-card-subtitle>We're here to help you 24/7</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <form [formGroup]="supportForm" (ngSubmit)="onSubmit()" class="support-form">
+            <mat-form-field appearance="outline">
+              <mat-label>Category</mat-label>
+              <mat-select formControlName="category">
+                <mat-option *ngFor="let cat of categories" [value]="cat.value">
+                  <mat-icon>{{cat.icon}}</mat-icon>
+                  {{cat.label}}
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="supportForm.get('category')?.hasError('required')">
+                Please select a category
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Subject</mat-label>
+              <input matInput formControlName="subject" placeholder="Brief description of your issue">
+              <mat-error *ngIf="supportForm.get('subject')?.hasError('required')">
+                Subject is required
+              </mat-error>
+              <mat-error *ngIf="supportForm.get('subject')?.hasError('minlength')">
+                Subject must be at least 5 characters
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Description</mat-label>
+              <textarea matInput formControlName="description" rows="4" 
+                        placeholder="Please provide detailed information about your issue"></textarea>
+              <mat-error *ngIf="supportForm.get('description')?.hasError('required')">
+                Description is required
+              </mat-error>
+              <mat-error *ngIf="supportForm.get('description')?.hasError('minlength')">
+                Description must be at least 20 characters
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Priority</mat-label>
+              <mat-select formControlName="priority">
+                <mat-option *ngFor="let pri of priorities" [value]="pri.value">
+                  <mat-icon [style.color]="pri.color">{{pri.icon}}</mat-icon>
+                  {{pri.label}}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <div class="file-upload">
+              <button type="button" mat-stroked-button (click)="fileInput.click()">
+                <mat-icon>attach_file</mat-icon>
+                Attach Files
+              </button>
+              <input #fileInput type="file" (change)="onFileSelected($event)" hidden>
+              <span class="file-hint">Max file size: 5MB</span>
+            </div>
+
+            <button type="submit" mat-raised-button [disabled]="!supportForm.valid || loading">
+              <mat-icon>send</mat-icon>
+              Submit Support Ticket
+            </button>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Right Section: FAQs and Quick Help -->
+    <div class="quick-help-section">
+      <mat-card class="faq-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>question_answer</mat-icon>
+            Frequently Asked Questions
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-accordion>
+            <mat-expansion-panel *ngFor="let faq of faqs">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  {{faq.question}}
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <p>{{faq.answer}}</p>
+            </mat-expansion-panel>
+          </mat-accordion>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="quick-links-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>link</mat-icon>
+            Quick Links
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="quick-links">
+            <a mat-button href="#">
+              <mat-icon>description</mat-icon>
+              Download Forms
+            </a>
+            <a mat-button href="#">
+              <mat-icon>location_on</mat-icon>
+              Find Nearest Branch
+            </a>
+            <a mat-button href="#">
+              <mat-icon>schedule</mat-icon>
+              Banking Hours
+            </a>
+            <a mat-button href="#">
+              <mat-icon>security</mat-icon>
+              Security Tips
+            </a>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
   </div>
 </div>

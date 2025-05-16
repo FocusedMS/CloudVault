@@ -12,13 +12,15 @@ public class PasswordGenerator {
 
     public static String generatePassword() {
         StringBuilder sb = new StringBuilder();
-        sb.append(randomChar(UPPER));
-        sb.append(randomChar(LOWER));
-        sb.append(randomChar(DIGITS));
-        sb.append(randomChar(SPECIAL));
-        sb.append(randomChar(UPPER));
-        sb.append(randomChar(LOWER));
-        sb.append(randomChar(DIGITS));
+        // Ensure at least one of each required character type
+        sb.append(randomChar(UPPER));    // 1 uppercase
+        sb.append(randomChar(LOWER));    // 1 lowercase
+        sb.append(randomChar(DIGITS));   // 1 digit
+        sb.append(randomChar(SPECIAL));  // 1 special
+        sb.append(randomChar(UPPER));    // 1 uppercase
+        sb.append(randomChar(LOWER));    // 1 lowercase
+        sb.append(randomChar(DIGITS));   // 1 digit
+        sb.append(randomChar(SPECIAL));  // 1 special (to make it 8 characters)
         return sb.toString();
     }
 

@@ -1,82 +1,52 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
-export interface LoginRequest {
+export interface User {
   accountNumber: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  success: boolean;
-  message: string;
+  fullName: string;
+  email: string;
   token?: string;
-  refreshToken?: string;
-  refreshTokenExpiry?: string;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = `${environment.apiUrl}/auth`;
+  private currentUserSubject: BehaviorSubject<User | null>;
+  public currentUser: Observable<User | null>;
 
-  constructor(private http: HttpClient) {}
-
-  login(credentials: LoginRequest): Observable<LoginResponse> {
-    return new Observable(observer => {
-      this.http.post<LoginResponse>(`${this.apiUrl}/login`, credentials).subscribe({
-        next: (response) => {
-          if (response.token) {
-            localStorage.setItem('token', response.token);
-            localStorage.setItem('accountNumber', credentials.accountNumber);
-          }
-          if (response.refreshToken) {
-            localStorage.setItem('refreshToken', response.refreshToken);
-            if (response.refreshTokenExpiry) {
-              localStorage.setItem('refreshTokenExpiry', response.refreshTokenExpiry);
-            }
-          }
-          observer.next(response);
-          observer.complete();
-        },
-        error: (err) => {
-          observer.error(err);
-        }
-      });
-    });
+  constructor(private http: HttpClient) {
+    const storedUser = localStorage.getItem('currentUser');
+    this.currentUserSubject = new BehaviorSubject<User | null>(storedUser ? JSON.parse(storedUser) : null);
+    this.currentUser = this.currentUserSubject.asObservable();
   }
 
-  getToken(): string | null {
-    return localStorage.getItem('token');
+  public getUser(): User | null {
+    return this.currentUserSubject.value;
   }
 
-  getRefreshToken(): string | null {
-    return localStorage.getItem('refreshToken');
+  public isLoggedIn(): boolean {
+    return !!this.currentUserSubject.value;
   }
 
-  getAccountNumber(): string | null {
-    return localStorage.getItem('accountNumber');
+  login(accountNumber: string, password: string): Observable<User> {
+    return this.http.post<User>(`${environment.apiUrl}/api/auth/login`, { accountNumber, password })
+      .pipe(map(user => {
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        this.currentUserSubject.next(user);
+        return user;
+      }));
   }
 
-  refreshToken(): Observable<any> {
-    const refreshToken = this.getRefreshToken();
-    const accountNumber = this.getAccountNumber();
-    return this.http.post<any>(`${this.apiUrl}/refresh-token`, {
-      refreshToken,
-      accountNumber
-    });
+  register(userData: any): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/api/auth/register`, userData);
   }
 
   logout(): void {
-    localStorage.removeItem('accountNumber');
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('refreshTokenExpiry');
-  }
-
-  isLoggedIn(): boolean {
-    return !!localStorage.getItem('token');
+    localStorage.removeItem('currentUser');
+    this.currentUserSubject.next(null);
   }
 } 

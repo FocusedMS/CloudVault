@@ -51,6 +51,14 @@ h2 {
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.08);
 }
 
+.full-width {
+  width: 100%;
+}
+
+.mat-form-field {
+  width: 100%;
+}
+
 .form-actions {
   margin-top: 1rem;
 }
@@ -107,6 +115,20 @@ h2 {
 }
 
 .text-center { text-align: center; }
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ffffff;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
 @media (max-width: 600px) {
   .dashboard-card { padding: 1rem; }

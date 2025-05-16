@@ -34,39 +34,33 @@
       </div>
       <div class="dashboard-grid">
         <!-- Balance Card -->
-        <div class="dashboard-card">
+        <div class="dashboard-card balance-card">
           <h3>Current Balance</h3>
-          <div class="amount"><span class="big-balance">₹{{ displayedBalance | number:'1.2-2' }}</span></div>
-        </div>
-        <!-- Quick Actions -->
-        <div class="dashboard-card">
-          <h3>Quick Actions</h3>
-          <div class="quick-actions-vertical">
-            <button class="btn btn-primary full-width" routerLink="/transaction">Transfer Money</button>
-            <button class="btn btn-success full-width" routerLink="/fixed-deposit">Create Fixed Deposit</button>
-            <button class="btn btn-primary full-width" routerLink="/statement">View Statement</button>
+          <div class="amount">
+            <span class="currency">₹</span>
+            <span class="big-balance">{{ displayedBalance | number:'1.2-2' }}</span>
           </div>
         </div>
-        <!-- Recent Transactions -->
-        <div class="dashboard-card">
-          <h3>Recent Transactions</h3>
-          <div class="transaction-history">
-            <div *ngIf="transactions.length === 0" class="no-transactions">
-              <div>No recent transactions</div>
-            </div>
-            <div *ngFor="let transaction of transactions" class="transaction-item">
-              <div class="transaction-info">
-                <div class="transaction-type">{{ transaction.transactionType }}</div>
-                <div class="transaction-date">{{ transaction.transactionDate | date:'medium' }}</div>
-              </div>
-              <div class="transaction-amount" [ngClass]="transaction.transactionType === 'CREDIT' ? 'credit' : 'debit'">
-                {{ transaction.transactionType === 'CREDIT' ? '+' : '-' }}₹{{ transaction.amount | number:'1.2-2' }}
-              </div>
-            </div>
+        <!-- Quick Actions -->
+        <div class="dashboard-card actions-card">
+          <h3>Quick Actions</h3>
+          <div class="quick-actions-vertical">
+            <button class="btn btn-primary full-width" routerLink="/transaction">
+              <i class="fas fa-exchange-alt"></i>
+              Transfer Money
+            </button>
+            <button class="btn btn-success full-width" routerLink="/fixed-deposit">
+              <i class="fas fa-piggy-bank"></i>
+              Create Fixed Deposit
+            </button>
+            <button class="btn btn-primary full-width" routerLink="/statement">
+              <i class="fas fa-file-alt"></i>
+              View Statement
+            </button>
           </div>
         </div>
         <!-- Account Summary -->
-        <div class="dashboard-card">
+        <div class="dashboard-card summary-card">
           <h3>Account Summary</h3>
           <div class="account-summary-list">
             <div class="summary-row"><span class="summary-label">Account Holder</span><span class="summary-value">{{ accountDetails.accountHolderName }}</span></div>
