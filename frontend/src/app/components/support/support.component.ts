@@ -34,6 +34,8 @@ export class SupportComponent {
   supportForm: FormGroup;
   loading = false;
   selectedFile: File | null = null;
+  showConfirmation = false;
+  confirmationDetails: any = null;
 
   categories = [
     { value: 'general', label: 'General Inquiry', icon: 'help_outline' },
@@ -74,9 +76,9 @@ export class SupportComponent {
   ];
 
   emergencyContacts = [
-    { title: '24/7 Banking Support', number: '1800-XXX-XXXX' },
-    { title: 'Card Lost/Stolen', number: '1800-XXX-YYYY' },
-    { title: 'Fraud Prevention', number: '1800-XXX-ZZZZ' }
+    { title: '24/7 Customer Care', number: '1800-123-4567' },
+    { title: 'Card Lost/Stolen', number: '1800-987-6543' },
+    { title: 'Fraud & Security Helpline', number: '1800-222-3333' }
   ];
 
   selectedCategory: string = 'general';
@@ -112,25 +114,24 @@ export class SupportComponent {
   onSubmit() {
     if (this.supportForm.valid) {
       this.loading = true;
-      // Here you would typically send the form data to your backend
       const formData = new FormData();
       formData.append('category', this.supportForm.get('category')?.value);
       formData.append('subject', this.supportForm.get('subject')?.value);
       formData.append('description', this.supportForm.get('description')?.value);
       formData.append('priority', this.supportForm.get('priority')?.value);
-      
       if (this.selectedFile) {
         formData.append('attachment', this.selectedFile);
       }
-
       // Simulate API call
       setTimeout(() => {
         this.loading = false;
-        this.snackBar.open('Support ticket submitted successfully! We\'ll respond within 24 hours.', 'Close', {
-          duration: 5000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom'
-        });
+        this.confirmationDetails = {
+          category: this.supportForm.get('category')?.value,
+          subject: this.supportForm.get('subject')?.value,
+          description: this.supportForm.get('description')?.value,
+          priority: this.supportForm.get('priority')?.value
+        };
+        this.showConfirmation = true;
         this.supportForm.reset({
           category: 'general',
           priority: 'medium'
@@ -138,6 +139,11 @@ export class SupportComponent {
         this.selectedFile = null;
       }, 1500);
     }
+  }
+
+  closeConfirmation() {
+    this.showConfirmation = false;
+    this.confirmationDetails = null;
   }
 
   getCategoryIcon(category: string): string {

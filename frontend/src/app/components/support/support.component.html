@@ -1,7 +1,6 @@
 <div class="support-container fade-in">
   <!-- Emergency Support Banner -->
   <div class="emergency-banner">
-    <mat-icon class="warning-icon">warning</mat-icon>
     <div class="emergency-content">
       <h2>Need Immediate Assistance?</h2>
       <div class="emergency-contacts">
@@ -14,24 +13,21 @@
   </div>
 
   <div class="support-content">
-    <!-- Left Section: Support Form -->
+    <!-- Left Section: Support Form or Confirmation -->
     <div class="support-form-section">
-      <mat-card>
+      <mat-card *ngIf="!showConfirmation">
         <mat-card-header>
           <mat-card-title>
-            <mat-icon>support_agent</mat-icon>
             Contact Support
           </mat-card-title>
           <mat-card-subtitle>We're here to help you 24/7</mat-card-subtitle>
         </mat-card-header>
-
         <mat-card-content>
           <form [formGroup]="supportForm" (ngSubmit)="onSubmit()" class="support-form">
             <mat-form-field appearance="outline">
               <mat-label>Category</mat-label>
               <mat-select formControlName="category">
                 <mat-option *ngFor="let cat of categories" [value]="cat.value">
-                  <mat-icon>{{cat.icon}}</mat-icon>
                   {{cat.label}}
                 </mat-option>
               </mat-select>
@@ -67,7 +63,6 @@
               <mat-label>Priority</mat-label>
               <mat-select formControlName="priority">
                 <mat-option *ngFor="let pri of priorities" [value]="pri.value">
-                  <mat-icon [style.color]="pri.color">{{pri.icon}}</mat-icon>
                   {{pri.label}}
                 </mat-option>
               </mat-select>
@@ -75,7 +70,6 @@
 
             <div class="file-upload">
               <button type="button" mat-stroked-button (click)="fileInput.click()">
-                <mat-icon>attach_file</mat-icon>
                 Attach Files
               </button>
               <input #fileInput type="file" (change)="onFileSelected($event)" hidden>
@@ -83,11 +77,30 @@
             </div>
 
             <button type="submit" mat-raised-button [disabled]="!supportForm.valid || loading">
-              <mat-icon>send</mat-icon>
               Submit Support Ticket
             </button>
           </form>
         </mat-card-content>
+      </mat-card>
+      <!-- Confirmation Card -->
+      <mat-card *ngIf="showConfirmation" class="confirmation-card glass-effect">
+        <div class="success-icon">
+          <span style="font-size:3rem;color:var(--success-color);display:inline-block;">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="24" fill="#43b96f" fill-opacity="0.12"/>
+              <path d="M16 24.5L22 30.5L34 18.5" stroke="#43b96f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </div>
+        <div class="success-title">Support Ticket Submitted!</div>
+        <div class="success-message">Thank you for reaching out. Our team will respond within 24 hours.</div>
+        <div class="success-details">
+          <div><strong>Category:</strong> {{confirmationDetails?.category | titlecase}}</div>
+          <div><strong>Subject:</strong> {{confirmationDetails?.subject}}</div>
+          <div><strong>Description:</strong> {{confirmationDetails?.description}}</div>
+          <div><strong>Priority:</strong> {{confirmationDetails?.priority | titlecase}}</div>
+        </div>
+        <button mat-raised-button color="primary" class="btn-gradient" (click)="closeConfirmation()">Close</button>
       </mat-card>
     </div>
 
@@ -96,7 +109,6 @@
       <mat-card class="faq-card">
         <mat-card-header>
           <mat-card-title>
-            <mat-icon>question_answer</mat-icon>
             Frequently Asked Questions
           </mat-card-title>
         </mat-card-header>
@@ -117,26 +129,21 @@
       <mat-card class="quick-links-card">
         <mat-card-header>
           <mat-card-title>
-            <mat-icon>link</mat-icon>
             Quick Links
           </mat-card-title>
         </mat-card-header>
         <mat-card-content>
           <div class="quick-links">
             <a mat-button href="#">
-              <mat-icon>description</mat-icon>
               Download Forms
             </a>
             <a mat-button href="#">
-              <mat-icon>location_on</mat-icon>
               Find Nearest Branch
             </a>
             <a mat-button href="#">
-              <mat-icon>schedule</mat-icon>
               Banking Hours
             </a>
             <a mat-button href="#">
-              <mat-icon>security</mat-icon>
               Security Tips
             </a>
           </div>
